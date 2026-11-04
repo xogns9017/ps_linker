@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>풍생 링커 (Poongsaeng Linker)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM UMD (cdnjs - GitHub Pages 최적화) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel Compiler for In-Browser JSX -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Pretendard Web Font -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      box-sizing: border-box;
+    }
+    input, textarea, select {
+      -webkit-touch-callout: default;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    body { 
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      -webkit-text-size-adjust: 100%;
+      background-color: #f1f5f9;
+    }
+    .ios-scroll {
+      -webkit-overflow-scrolling: touch;
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+  </style>
+</head>
+<body class="text-slate-800 font-sans antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // Supabase DB 클라이언트 설정 (제공해주신 Key 적용)
+    const SUPABASE_URL = 'https://umzritcyqhuzpvqilswu.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_DG04h3TDpUw6Y5DdbzmZAw_EBDjErjJ';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Safe SVG Icon Generator Helper
+    const makeIcon = (path) => (props) => (
+      <svg 
+        width={props.size || 18} 
+        height={props.size || 18} 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={props.className}
+      >
+        {path}
+      </svg>
+    );
+
+    const MessageSquare = makeIcon(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>);
+    const Home = makeIcon(<><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>);
+    const HeartHandshake = makeIcon(<><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 5 9.04 7.96a2.17 2.17 0 0 0 0 3.08v0c.82.82 2.13.85 3 .07l2.07-1.9a2.82 2.82 0 0 1 3.79 0l2.96 2.66"/><path d="m18 15-2-2"/><path d="m15 18-2-2"/></>);
+    const User = makeIcon(<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>);
+    const Plus = makeIcon(<><path d="M5 12h14"/><path d="M12 5v14"/></>);
+    const Search = makeIcon(<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>);
+    const Send = makeIcon(<><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></>);
+    const Award = makeIcon(<><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></>);
+    const MapPin = makeIcon(<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>);
+    const Phone = makeIcon(<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>);
+    const Sparkles = makeIcon(<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>);
+    const ChevronRight = makeIcon(<path d="m9 18 6-6-6-6"/>);
+    const X = makeIcon(<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>);
+    const LogOut = makeIcon(<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></>);
+    const ShieldCheck = makeIcon(<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></>);
+    const Calculator = makeIcon(<><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></>);
+    const Mail = makeIcon(<><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></>);
+    const KeyRound = makeIcon(<><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></>);
+    const ArrowRight = makeIcon(<><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>);
+    const SearchCode = makeIcon(<><path d="m13 13.5 2 2.5-2 2.5"/><path d="m21 21-4.3-4.3"/><path d="M9 8.5 7 11l2 2.5"/><circle cx="11" cy="11" r="8"/></>);
+    const Wifi = makeIcon(<><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.85a10 10 0 0 1 14 0"/><path d="M8.5 16.88a5 5 0 0 1 7 0"/></>);
+    const Camera = makeIcon(<><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></>);
+    const Shield = makeIcon(<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>);
+    const EyeOff = makeIcon(<><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.52 13.52 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></>);
+    const Trash2 = makeIcon(<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></>);
+    const Eye = makeIcon(<><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></>);
+    const Calendar = makeIcon(<><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></>);
+    const Users = makeIcon(<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 1 0 7.75"/></>);
+    const AlertTriangle = makeIcon(<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 1 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></>);
+    const Thermometer = makeIcon(<><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></>);
+    const Clock = makeIcon(<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>);
+    const Edit3 = makeIcon(<><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></>);
+    const CheckCircle2 = makeIcon(<><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></>);
+
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    const ALLOWED_DOMAINS = ['@ps.hs.kr', '@gmail.com'];
+
+    const CATEGORIES = {
+      COUNSEL: { id: 'COUNSEL', name: '고민상담', max: 2, limitHours: 48, badgeColor: 'bg-rose-100 text-rose-700 border-rose-200', desc: '1:1 비밀 밀착 고민 나누기' },
+      STUDY: { id: 'STUDY', name: '학업/질문', max: 20, limitHours: 120, badgeColor: 'bg-blue-100 text-blue-700 border-blue-200', desc: '내신/수능 같이 공부하기' },
+      HOBBY: { id: 'HOBBY', name: '친목/취미', max: 20, limitHours: 120, badgeColor: 'bg-emerald-100 text-emerald-700 border-emerald-200', desc: '운동, 게임, 동아리 수다' },
+      SDGS: { id: 'SDGS', name: 'SDGs/교내협력', max: 20, limitHours: 120, badgeColor: 'bg-amber-100 text-amber-800 border-amber-200', desc: 'SDGs 17번 교내 연대 프로젝트' },
+      RECRUIT: { id: 'RECRUIT', name: '팀원모집', max: 10, limitHours: 72, badgeColor: 'bg-purple-100 text-purple-700 border-purple-200', desc: '수행평가 모둠 & 동아리 모집' }
+    };
+
+    const MATH_SYMBOL_CATEGORIES = {
+      CALCULUS: { name: '미적분/수II', symbols: ['x²', 'xⁿ', '√x', 'lim', "f'(x)", '∫', 'Σ', 'log', 'ln', 'dx/dy'] },
+      BASIC: { name: '기본 기호', symbols: ['+', '-', '×', '÷', '±', '=', '≠', '≈', '≤', '≥', '∞'] },
+      TRIG_GREEK: { name: '삼각/라틴', symbols: ['sin', 'cos', 'tan', 'π', 'θ', 'Δ', 'α', 'β', 'Ω'] },
+      FORMULAS: { name: '공식 템플릿', symbols: ['$\\lim_{x \\to 0}$', "$f'(x) = L$", '$\\int f(x) dx$', '$a^2 + b^2 = c^2$'] }
+    };
+
+    const INITIAL_BETA_ACCOUNTS = [
+      {
+        id: 'u-admin',
+        email: 'UM1117@ps.hs.kr',
+        nickname: '총괄관리자(UM1117)',
+        realName: '총괄관리자',
+        gradeClass: '3학년 1반',
+        temperature: 99.9,
+        role: '총괄 관리자 🛡️',
+        isAdmin: true,
+        bannedUntil: null,
+        badges: [{ id: 'b-admin', name: '총괄 관리자', emoji: '🛡️', desc: '시스템 총괄 관리 권한' }]
+      },
+      {
+        id: 'u-1',
+        email: 'student1@ps.hs.kr',
+        nickname: '푸른풍생인',
+        realName: '김풍생',
+        gradeClass: '1학년 1반',
+        temperature: 36.5,
+        role: '학생 (기본)',
+        isAdmin: false,
+        bannedUntil: null,
+        badges: [{ id: 'b1', name: '초보 멘토', emoji: '🌱', desc: '온도 36.5℃ 달성' }]
+      },
+      {
+        id: 'u-5',
+        email: 'student2@ps.hs.kr',
+        nickname: '방랑하는풍생인',
+        realName: '최진로',
+        gradeClass: '1학년 2반',
+        temperature: 36.5,
+        role: '학생 (기본)',
+        isAdmin: false,
+        bannedUntil: null,
+        badges: [{ id: 'b7', name: '초보 멘토', emoji: '🌱', desc: '온도 36.5℃ 달성' }]
+      }
+    ];
+
+    const BAD_WORDS_BASE = [
+      '시발', '씨발', 'ㅅㅂ', '시1발', '시!발', '병신', 'ㅂㅅ', '존나', 'ㅈㄴ', '개새끼', 'ㄱㅅㄲ', '지랄', 'ㅈㄹ', '미친', 'ㅁㅊ', '닥쳐', 'ㄷㅊ'
+    ];
+
+    const PROFANITY_PATTERNS = [
+      /시[\s\d\W\_이]*발/i, /씨[\s\d\W\_이]*발/i, /ㅅ[\s\d\W\_]*ㅂ/i, /병[\s\d\W\_신]*신/i, /ㅂ[\s\d\W\_]*ㅅ/i, /존[\s\d\W\_나아]*나/i, /ㅈ[\s\d\W\_]*ㄴ/i
+    ];
+
+    const INITIAL_SEED_ROOMS = [
+      { id: 'room-1', title: '진로 문제 때문에 요즘 너무 불안하고 힘들어요...', category: 'COUNSEL', creator: '방랑하는풍생인', creatorEmail: 'student2@ps.hs.kr', membersCount: 2, lastMessageAt: Date.now() - 3 * 3600 * 1000, createdAt: Date.now() - 5 * 3600 * 1000, image: null }
+    ];
+
+    const INITIAL_SEED_MESSAGES = [
+      { id: 'm1', roomId: 'room-1', sender: '방랑하는풍생인', senderEmail: 'student2@ps.hs.kr', text: '안녕하세요... 적성이랑 성적 고민이 커요.', timestamp: Date.now() - 4 * 3600 * 1000, isSystem: false }
+    ];
+
+    function calculateRemainingTime(lastMessageAt, categoryKey) {
+      if (!lastMessageAt) return { text: '⏱️ 기한 없음', isExpired: false };
+      const cat = CATEGORIES[categoryKey] || CATEGORIES.STUDY;
+      const limitMs = cat.limitHours * 3600 * 1000;
+      const diffMs = (lastMessageAt + limitMs) - Date.now();
+
+      if (diffMs <= 0) return { text: '💥 폭파됨', isExpired: true };
+
+      const hours = Math.floor(diffMs / (3600 * 1000));
+      const mins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
+      return { text: `⏱️ ${hours}시간 ${mins}분 후 폭파 예정`, isExpired: false };
+    }
+
+    function filterText(text) {
+      if (!text) return { cleanText: '', isFiltered: false };
+      let cleanText = text;
+      let isFiltered = false;
+
+      BAD_WORDS_BASE.forEach(bad => {
+        if (text.includes(bad)) isFiltered = true;
+      });
+
+      PROFANITY_PATTERNS.forEach(pattern => {
+        if (pattern.test(cleanText)) {
+          isFiltered = true;
+          cleanText = cleanText.replace(pattern, (match) => '*'.repeat(match.length));
+        }
+      });
+
+      return { cleanText, isFiltered };
+    }
+
+    function App() {
+      const [isLoggedIn, setIsLoggedIn] = useState(false);
+      const [loginEmail, setLoginEmail] = useState('');
+      const [verificationCode, setVerificationCode] = useState('');
+      const [sentCode, setSentCode] = useState(null);
+      const [authStep, setAuthStep] = useState(1);
+      const [authNickname, setAuthNickname] = useState('');
+      const [authRealName, setAuthRealName] = useState('');
+      const [authError, setAuthError] = useState('');
+      const [simulatedEmails, setSimulatedEmails] = useState([]);
+      const [showWebmailModal, setShowWebmailModal] = useState(false);
+      const [showLoginBetaModal, setShowLoginBetaModal] = useState(false);
+
+      const [adminUserList, setAdminUserList] = useState(INITIAL_BETA_ACCOUNTS);
+      const [currentUser, setCurrentUser] = useState(INITIAL_BETA_ACCOUNTS[1]);
+      const [activeTab, setActiveTab] = useState('home');
+      const [selectedCategory, setSelectedCategory] = useState('ALL');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [activeRoomId, setActiveRoomId] = useState(null);
+      const [adminActiveSubTab, setAdminActiveSubTab] = useState('users');
+
+      const [reports, setReports] = useState([]);
+      const [rooms, setRooms] = useState(INITIAL_SEED_ROOMS);
+      const [allMessages, setAllMessages] = useState(INITIAL_SEED_MESSAGES);
+      const [lostItems, setLostItems] = useState([]);
+
+      const [showBetaAccountModal, setShowBetaAccountModal] = useState(false);
+      const [showCreateModal, setShowCreateModal] = useState(false);
+      const [newRoomTitle, setNewRoomTitle] = useState('');
+      const [newRoomCategory, setNewRoomCategory] = useState('COUNSEL');
+      const [newRoomImage, setNewRoomImage] = useState(null);
+
+      const [showUserProfileModal, setShowUserProfileModal] = useState(false);
+      const [targetProfileUser, setTargetProfileUser] = useState(null);
+
+      const [showMathKeyboard, setShowMathKeyboard] = useState(false);
+      const [selectedMathCategory, setSelectedMathCategory] = useState('CALCULUS');
+      const [chatInputText, setChatInputText] = useState('');
+      const [chatSelectedImage, setChatSelectedImage] = useState(null);
+
+      const [toastMessage, setToastMessage] = useState(null);
+      const messagesEndRef = useRef(null);
+
+      const triggerToast = (text, type = 'info') => {
+        setToastMessage({ text, type });
+        setTimeout(() => setToastMessage(null), 3000);
+      };
+
+      // Supabase DB 불러오기 및 실시간 동기화
+      useEffect(() => {
+        async function fetchRooms() {
+          const { data, error } = await db.from('rooms').select('*').order('created_at', { ascending: false });
+          if (!error && data && data.length > 0) {
+            setRooms(data.map(r => ({
+              id: r.id,
+              title: r.title,
+              category: r.category,
+              creator: r.creator,
+              creatorEmail: r.creator_email,
+              membersCount: r.members_count,
+              lastMessageAt: Number(r.last_message_at),
+              createdAt: Number(r.created_at),
+              image: r.image
+            })));
+          }
+        }
+
+        async function fetchMessages() {
+          const { data, error } = await db.from('messages').select('*').order('timestamp', { ascending: true });
+          if (!error && data && data.length > 0) {
+            setAllMessages(data.map(m => ({
+              id: m.id,
+              roomId: m.room_id,
+              sender: m.sender,
+              senderEmail: m.sender_email,
+              text: m.text,
+              image: m.image,
+              timestamp: Number(m.timestamp),
+              isSystem: m.is_system,
+              isEdited: m.is_edited
+            })));
+          }
+        }
+
+        fetchRooms();
+        fetchMessages();
+
+        const channel = db.channel('public_chat_changes')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+            const m = payload.new;
+            const newMsg = {
+              id: m.id,
+              roomId: m.room_id,
+              sender: m.sender,
+              senderEmail: m.sender_email,
+              text: m.text,
+              image: m.image,
+              timestamp: Number(m.timestamp),
+              isSystem: m.is_system,
+              isEdited: m.is_edited
+            };
+            setAllMessages(prev => [...prev.filter(item => item.id !== newMsg.id), newMsg]);
+          })
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rooms' }, (payload) => {
+            const r = payload.new;
+            const newRoom = {
+              id: r.id,
+              title: r.title,
+              category: r.category,
+              creator: r.creator,
+              creatorEmail: r.creator_email,
+              membersCount: r.members_count,
+              lastMessageAt: Number(r.last_message_at),
+              createdAt: Number(r.created_at),
+              image: r.image
+            };
+            setRooms(prev => [newRoom, ...prev.filter(item => item.id !== newRoom.id)]);
+          })
+          .subscribe();
+
+        return () => {
+          db.removeChannel(channel);
+        };
+      }, []);
+
+      const checkUserBanned = () => {
+        const userInList = adminUserList.find(u => u.id === currentUser.id);
+        const banUntil = userInList?.bannedUntil;
+        if (banUntil && banUntil > Date.now()) {
+          const remainingMinutes = Math.ceil((banUntil - Date.now()) / (60 * 1000));
+          return { isBanned: true, timeText: `${remainingMinutes}분` };
+        }
+        return { isBanned: false, timeText: '' };
+      };
+
+      const handleSendMessage = async (e) => {
+        if (e) e.preventDefault();
+        const textToSend = chatInputText.trim();
+        if ((!textToSend && !chatSelectedImage) || !activeRoomId) return;
+
+        const { isBanned, timeText } = checkUserBanned();
+        if (isBanned) {
+          triggerToast(`⛔ 현재 채팅이 차단된 계정입니다. (남은 차단 시간: ${timeText})`, 'danger');
+          return;
+        }
+
+        const { cleanText } = filterText(textToSend);
+        const imageToSend = chatSelectedImage;
+
+        setChatInputText('');
+        setChatSelectedImage(null);
+
+        const now = Date.now();
+
+        // UI에 먼저 즉각 반영
+        const localMsg = {
+          id: `m-${now}`,
+          roomId: activeRoomId,
+          sender: currentUser.nickname,
+          senderEmail: currentUser.email,
+          text: cleanText,
+          image: imageToSend || null,
+          timestamp: now,
+          isSystem: false
+        };
+        setAllMessages(prev => [...prev, localMsg]);
+
+        // DB에 저장
+        const newMsgObj = {
+          id: `m-${now}`,
+          room_id: activeRoomId,
+          sender: currentUser.nickname,
+          sender_email: currentUser.email,
+          text: cleanText,
+          image: imageToSend || null,
+          timestamp: now,
+          is_system: false
+        };
+
+        const { error } = await db.from('messages').insert([newMsgObj]);
+        if (error) {
+          triggerToast('🚨 DB 저장 실패: ' + error.message, 'danger');
+        } else {
+          await db.from('rooms').update({ last_message_at: now }).eq('id', activeRoomId);
+        }
+      };
+
+      const handleCreateRoom = async (e) => {
+        if (e) e.preventDefault();
+        const titleTrimmed = newRoomTitle.trim();
+        if (!titleTrimmed) return;
+
+        const { cleanText } = filterText(titleTrimmed);
+        const roomId = `room-${Date.now()}`;
+        const now = Date.now();
+
+        const newRoomLocal = {
+          id: roomId,
+          title: cleanText,
+          category: newRoomCategory,
+          creator: currentUser.nickname,
+          creatorEmail: currentUser.email,
+          membersCount: 1,
+          lastMessageAt: now,
+          createdAt: now,
+          image: newRoomImage || null
+        };
+
+        const sysMsgLocal = {
+          id: `m-${now}`,
+          roomId: roomId,
+          sender: '시스템',
+          text: `🎉 '${cleanText}' 대화방이 개설되었습니다.`,
+          timestamp: now,
+          isSystem: true
+        };
+
+        // UI에 먼저 반영
+        setRooms(prev => [newRoomLocal, ...prev]);
+        setAllMessages(prev => [...prev, sysMsgLocal]);
+        setNewRoomTitle('');
+        setNewRoomImage(null);
+        setShowCreateModal(false);
+        setActiveRoomId(roomId);
+
+        // DB에 대화방 및 메시지 추가
+        const newRoomObj = {
+          id: roomId,
+          title: cleanText,
+          category: newRoomCategory,
+          creator: currentUser.nickname,
+          creator_email: currentUser.email,
+          members_count: 1,
+          last_message_at: now,
+          created_at: now,
+          image: newRoomImage || null
+        };
+
+        const sysMsgObj = {
+          id: `m-${now}`,
+          room_id: roomId,
+          sender: '시스템',
+          text: `🎉 '${cleanText}' 대화방이 개설되었습니다.`,
+          timestamp: now,
+          is_system: true
+        };
+
+        const { error } = await db.from('rooms').insert([newRoomObj]);
+        if (error) {
+          triggerToast('🚨 DB 생성 실패: ' + error.message, 'danger');
+        } else {
+          await db.from('messages').insert([sysMsgObj]);
+        }
+      };
+
+      const handleInsertMathSymbol = (sym) => {
+        setChatInputText(prev => prev + (prev ? ' ' : '') + sym);
+      };
+
+      const currentRoomMessages = useMemo(() => {
+        if (!activeRoomId) return [];
+        return allMessages.filter(m => m.roomId === activeRoomId).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      }, [allMessages, activeRoomId]);
+
+      const filteredRooms = useMemo(() => {
+        return rooms.filter(room => {
+          if (selectedCategory !== 'ALL' && room.category !== selectedCategory) return false;
+          if (searchQuery.trim() && !room.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+          return true;
+        });
+      }, [rooms, selectedCategory, searchQuery]);
+
+      const activeRoom = rooms.find(r => r.id === activeRoomId);
+
+      // LOGIN SCREEN
+      if (!isLoggedIn) {
+        return (
+          <div className="min-h-screen bg-slate-900 text-slate-800 flex justify-center items-center font-sans antialiased p-4">
+            <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl space-y-6">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-teal-600 text-white rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+                  <HeartHandshake className="w-9 h-9" />
+                </div>
+                <h1 className="text-2xl font-black text-slate-900">풍생 링커</h1>
+                <p className="text-xs text-teal-700 font-bold">Poongsaeng High School Linker</p>
+              </div>
+
+              <div className="space-y-4">
+                <button 
+                  onClick={() => { setIsLoggedIn(true); setActiveTab('home'); }}
+                  className="w-full py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-extrabold rounded-2xl text-xs shadow-lg transition"
+                >
+                  🚀 로그인하고 입장하기
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // MAIN APP SCREEN
+      return (
+        <div className="min-h-screen bg-slate-100 text-slate-800 flex justify-center font-sans antialiased">
+          <div className="w-full max-w-md bg-white min-h-screen flex flex-col shadow-2xl relative pb-24 border-x border-slate-200">
+            
+            {toastMessage && (
+              <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full shadow-xl text-xs font-bold flex items-center gap-2 ${
+                toastMessage.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-white'
+              }`}>
+                <Sparkles className="w-4 h-4" />
+                <span>{toastMessage.text}</span>
+              </div>
+            )}
+
+            {!activeRoomId && (
+              <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 bg-teal-600 rounded-xl flex items-center justify-center text-white shadow-md">
+                    <HeartHandshake className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h1 className="font-black text-base text-slate-900 leading-none">풍생 링커</h1>
+                    <p className="text-[10px] text-teal-700 font-bold mt-0.5">Poongsaeng Anonymous Platform</p>
+                  </div>
+                </div>
+              </header>
+            )}
+
+            {/* CHAT ROOM VIEW */}
+            {activeRoomId ? (
+              <div className="flex-1 flex flex-col bg-slate-50 relative h-screen">
+                <div className="bg-white border-b border-slate-200 p-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setActiveRoomId(null)} className="p-1 text-slate-500 hover:text-slate-800">
+                      <X className="w-5 h-5" />
+                    </button>
+                    <div>
+                      <h2 className="font-bold text-xs text-slate-900 truncate max-w-[180px]">{activeRoom?.title || '대화방'}</h2>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 p-4 overflow-y-auto space-y-3 ios-scroll">
+                  {currentRoomMessages.map((msg) => {
+                    const isMe = msg.sender === currentUser.nickname;
+                    if (msg.isSystem) {
+                      return (
+                        <div key={msg.id} className="text-center my-2">
+                          <span className="text-[10px] bg-teal-50 text-teal-800 border border-teal-200 px-3 py-1 rounded-full font-bold">
+                            {msg.text}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                        <div className="text-[10px] text-slate-400 mb-0.5">{msg.sender}</div>
+                        <div className={`max-w-[80%] rounded-2xl p-3 text-xs shadow-sm ${isMe ? 'bg-teal-600 text-white' : 'bg-white text-slate-800 border'}`}>
+                          {msg.text}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {showMathKeyboard && (
+                  <div className="bg-slate-100 border-t border-slate-200 p-2 space-y-2">
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {MATH_SYMBOL_CATEGORIES[selectedMathCategory].symbols.map((sym, idx) => (
+                        <button key={idx} onClick={() => handleInsertMathSymbol(sym)} className="bg-white border text-slate-800 font-mono text-xs py-1.5 rounded-lg font-bold">
+                          {sym}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-white border-t border-slate-200 p-3">
+                  <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                    <button type="button" onClick={() => setShowMathKeyboard(!showMathKeyboard)} className="p-2 bg-amber-100 text-amber-800 rounded-xl">
+                      <Calculator className="w-4 h-4" />
+                    </button>
+                    <input 
+                      type="text" 
+                      value={chatInputText}
+                      onChange={(e) => setChatInputText(e.target.value)}
+                      placeholder="메시지 입력..." 
+                      className="flex-1 bg-slate-100 border rounded-xl px-3 py-2 text-xs"
+                    />
+                    <button type="submit" className="p-2 bg-teal-600 text-white rounded-xl">
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ) : (
+              /* TAB CONTENTS */
+              <div className="flex-1 p-4 space-y-5 overflow-y-auto ios-scroll">
+                {activeTab === 'home' && (
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-br from-teal-700 to-emerald-800 rounded-3xl p-5 text-white shadow-xl space-y-3">
+                      <h2 className="text-lg font-black">실시간 온라인 데이터베이스 연결 완료!</h2>
+                      <p className="text-xs text-teal-100">이제 다른 사용자와 실시간으로 소통할 수 있습니다.</p>
+                      <button onClick={() => setShowCreateModal(true)} className="px-3 py-2 bg-white text-teal-900 font-extrabold rounded-xl text-xs flex items-center gap-1 shadow">
+                        <Plus className="w-4 h-4" />
+                        <span>방 만들기</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h3 className="font-extrabold text-sm text-slate-900">실시간 활성 대화방</h3>
+                      {filteredRooms.map(room => (
+                        <div key={room.id} onClick={() => setActiveRoomId(room.id)} className="p-3.5 bg-white rounded-2xl border hover:border-teal-500 shadow-sm cursor-pointer">
+                          <h4 className="font-extrabold text-xs text-slate-900">{room.title}</h4>
+                          <p className="text-[10px] text-slate-400 mt-1">개설자: {room.creator}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* NAVIGATION */}
+            {!activeRoomId && (
+              <nav className="fixed bottom-3 left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-md bg-white/95 border rounded-2xl py-2.5 px-3 flex items-center justify-around z-30 shadow-2xl">
+                <button onClick={() => setActiveTab('home')} className="flex flex-col items-center gap-0.5 text-[10px] font-bold text-teal-600"><Home className="w-5 h-5" /><span>홈</span></button>
+              </nav>
+            )}
+
+            {/* MODAL: CREATE ROOM */}
+            {showCreateModal && (
+              <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <h3 className="font-extrabold text-base text-slate-900">새 대화방 개설</h3>
+                    <button onClick={() => setShowCreateModal(false)} className="text-slate-400"><X className="w-5 h-5" /></button>
+                  </div>
+                  <form onSubmit={handleCreateRoom} className="space-y-3 text-xs">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">제목</label>
+                      <input type="text" value={newRoomTitle} onChange={(e) => setNewRoomTitle(e.target.value)} placeholder="대화방 제목 입력" className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs" required />
+                    </div>
+                    <button type="submit" className="w-full py-3 bg-teal-600 text-white font-extrabold rounded-xl text-xs shadow">대화방 개설하기</button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
+  </script>
+</body>
+</html>
